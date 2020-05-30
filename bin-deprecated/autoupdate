@@ -1,0 +1,28 @@
+#!/usr/local/bin/python-odoo-shell
+import logging
+import os
+
+_logger = logging.getLogger("autoupdate")
+
+# TODO Eliminar este script en algún momento
+_logger.warning(
+    "`autoupdate` esta en DESUSO y se eliminara en Andamio 13.0, "
+    "use en su lugar: click-odoo-update"
+)
+
+# Nota: `` module_auto_update`` debe estar instalado en Odoo para que esto funcione.
+try:
+    env["ir.module.module"].upgrade_changed_checksum
+except AttributeError:
+    env["base.module.upgrade"].upgrade_module()
+else:
+    # Deshabilitar cosas obsoletas
+    env["ir.config_parameter"].set_param(
+        "module_auto_update.enable_deprecated",
+        "0",
+    )
+    # Las versiones más recientes de `` module_auto_update`` recomiendan este enfoque
+    env["ir.module.module"].upgrade_changed_checksum(
+        os.environ.get("I18N_OVERWRITE") == "1",
+    )
+env.cr.commit()

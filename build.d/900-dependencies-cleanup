@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright 2017 LasLabs Inc.
+
+import os
+
+from andamiolib import CUSTOM_DIR, FILE_APT_BUILD
+from andamiolib.installer import INSTALLERS
+
+# Las dependencias de tiempo de compilación deben
+# eliminarse al finalizar la compilación
+if os.path.isfile(FILE_APT_BUILD):
+    installer = INSTALLERS["apt"](FILE_APT_BUILD)
+    installer.remove()
+    installer.cleanup()
+
+
+# Limpie la basura generada por los respectivos administradores de paquetes
+for name, class_ in INSTALLERS.items():
+    req_file = os.path.join(CUSTOM_DIR, "dependencies", "%s.txt" % name)
+    if os.path.isfile(req_file):
+        class_(req_file).cleanup()

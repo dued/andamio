@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -ex
+
+# Compruebe que las instalaciones del usuario funcionan
+pip install --user pg_activity
+
+# El binario debe estar en $PATH
+pg_activity --version

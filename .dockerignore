@@ -1,0 +1,6 @@
+.git*
+*.test.yml
+LICENSE*
+README*
+tests
+.DS_Store

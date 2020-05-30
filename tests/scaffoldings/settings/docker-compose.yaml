@@ -1,0 +1,39 @@
+version: "2.1"
+services:
+  odoo:
+    build:
+      context: ./
+      args:
+        LOG_LEVEL: DEBUG
+        ODOO_VERSION: $ODOO_MINOR
+    tty: true
+    environment:
+      EMAIL_FROM: test@example.com
+      INITIAL_LANG: es_ES
+      PGUSER: another_odoo
+      PGPASSWORD: anotherodoopassword
+      PGHOST: postgresql
+      PGPORT: 15432
+      PGDATABASE: ${DBNAME:-prod}
+      SMTP_SERVER: mailhog
+      SMTP_PORT: 1025 # MailHog default
+    depends_on:
+      - postgresql
+    volumes:
+      - filestore:/var/lib/odoo:z
+
+  postgresql:
+    image: postgres:${DB_VERSION}-alpine
+    environment:
+      POSTGRES_USER: another_odoo
+      POSTGRES_PASSWORD: anotherodoopassword
+    command: -p 15432
+    volumes:
+      - db:/var/lib/postgresql/data:z
+
+  mailhog:
+    image: mailhog/mailhog
+
+volumes:
+  db:
+  filestore:

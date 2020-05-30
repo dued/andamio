@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+import argparse
+import logging
+
+from andamiolib import LOG_LEVELS, logger
+
+parser = argparse.ArgumentParser(description="Facil registro para scripts")
+parser.add_argument("level", choices=LOG_LEVELS)
+parser.add_argument("message", nargs="+")
+arguments = parser.parse_args()
+
+logger.log(getattr(logging, arguments.level), " ".join(arguments.message))

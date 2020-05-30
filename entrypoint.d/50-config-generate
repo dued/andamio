@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ -f  "${OPENERP_SERVER}" ]; then
+    log INFO Archivo $OPENERP_SERVER existe, omitiendo la generacion de configuracion
+    exit 0
+fi
+
+config-generate

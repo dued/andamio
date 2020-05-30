@@ -1,0 +1,2 @@
+# Este paquete NO se instalara
+busybox

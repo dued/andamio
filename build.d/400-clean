@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import os
+import shutil
+import sys
+
+from andamiolib import CLEAN, ODOO_DIR, PRIVATE_DIR, SRC_DIR, addons_config, logger
+
+if not CLEAN:
+    logger.warning("Not cleaning garbage")
+    sys.exit()
+
+# Obtén las rutas habilitadas
+repos_addons = {}
+for addon, repo in addons_config(filtered=False):
+    repo_path = os.path.realpath(os.path.join(SRC_DIR, repo))
+    repos_addons.setdefault(repo_path, set())
+    repos_addons[repo_path].add(addon)
+logger.debug("Rutas de complementos habilitadas: %s", repos_addons)
+
+# Atraviesa src dir y elimina cualquier cosa que no esté explícitamente habilitada
+for directory, subdirectories, subfiles in os.walk(SRC_DIR):
+    logger.debug("Verificando para directorio de limpieza %s", directory)
+    # Omitir directorio src principal
+    if directory == SRC_DIR:
+        continue
+    # Omitir siempre private/*
+    if directory == PRIVATE_DIR:
+        subdirectories[:] = []
+        continue
+    # Dentro del directorio odoo, omita todos los directorios excepto los addons
+    if directory == ODOO_DIR:
+        subdirectories[:] = ["addons"]
+        continue
+    try:
+        # Obtener addons habilitados en el directorio actual
+        enabled_addons = repos_addons[directory]
+    except KeyError:
+        # Esto no es un repositorio; ¿Hay algo adentro para preservar?
+        directory += os.path.sep
+        if any(repo.startswith(directory) for repo in repos_addons):
+            # Entonces, entremos; eliminaremos más tarde si es necesario
+            continue
+    else:
+        # Este es un repositorio de complementos; no entres en los habilitados
+        for addon in enabled_addons:
+            subdirectories.remove(addon)
+        continue
+    # Eliminar cualquier otro directorio
+    logger.info("Eliminando directorio %s", directory)
+    shutil.rmtree(directory)

@@ -1,0 +1,6 @@
+# Compilado localmente, lo que fallaria si falla `apt_build.txt`
+pycrypto==2.6.1 --no-binary :all:
+# Odoo pins docutils==0.12, asi verificaremos que se actualice
+docutils==0.14
+# Tambien se pueden incluir archivos de dependencia externos; ejemplo: cfssl
+-r https://raw.githubusercontent.com/dued/co-data/394a682160bb7dc6e93706ac0be2b972f450f145/requirements.txt

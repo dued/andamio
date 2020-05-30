@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+export PYTHONOPTIMIZE=""  # Querrás `assert` afirmar en tus scripts
+log WARNING python-odoo-shell esta en desuso y se eliminara en \
+    Andamio 13.0, use en su lugar: click-odoo
+exec odoo shell < "$1"

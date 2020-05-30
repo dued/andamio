@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright 2017 LasLabs Inc.
+
+from glob import glob
+from os.path import basename, join, splitext
+
+from andamiolib import CUSTOM_DIR, FILE_APT_BUILD, SRC_DIR
+from andamiolib.installer import INSTALLERS, install, logger
+
+# Construir dependencias instaladas antes que cualquier otra
+install("apt", FILE_APT_BUILD)
+
+for name in INSTALLERS:
+    req_files = []
+    # Instalación normal de dependencia
+    req_files.append(join(CUSTOM_DIR, "dependencies", "%s.txt" % name))
+    for req_file in req_files:
+        install(name, req_file)
+
+# Instalación de dependencias ordenadas (sorted)
+dep_files = sorted(glob(join(CUSTOM_DIR, "dependencies", "[0-9]*-*")))
+for dep_file in dep_files:
+    root, ext = splitext(basename(dep_file))
+    # Obtenga el instalador (xxx-installer[-description][.ext])
+    installer = root.split("-", 2)[1]
+    if installer not in INSTALLERS:
+        logger.error("Instalador desconocido: %s", installer)
+        raise Exception
+    install(installer, dep_file)

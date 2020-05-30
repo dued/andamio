@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""Genera la configuracion del servidor Odoo a partir de plantillas"""
+
+import os
+from contextlib import closing
+from string import Template
+
+from andamiolib import logger
+
+try:
+    # Python 2, donde io.StringIO falla porque es unicode-only
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+try:
+    from configparser import RawConfigParser
+
+    parser = RawConfigParser(strict=False)
+except ImportError:
+    # Python 2, Donde strict=True no existe
+    from ConfigParser import RawConfigParser
+
+    parser = RawConfigParser()
+
+ODOO_VERSION = os.environ.get("ODOO_VERSION")
+TARGET_FILE = os.environ.get("OPENERP_SERVER", "/opt/odoo/auto/odoo.conf")
+if ODOO_VERSION not in {"8.0", "9.0"}:
+    TARGET_FILE = os.environ.get("ODOO_RC", TARGET_FILE)
+CONFIG_DIRS = ("/opt/odoo/common/conf.d", "/opt/odoo/custom/conf.d")
+CONFIG_FILES = []
+
+# Lee todos los archivos de configuración encontrados en esas carpetas
+logger.info("Fusionar archivos de configuracion encontrados en %s", TARGET_FILE)
+for dir_ in CONFIG_DIRS:
+    try:
+        for file_ in sorted(os.listdir(dir_)):
+            parser.read(os.path.join(dir_, file_))
+    except OSError:  # TODO Use FileNotFoundError cuando descartemos Python 2
+        continue
+
+# Escríbelo en un objeto de cadena de memoria
+with closing(StringIO()) as resultfp:
+    parser.write(resultfp)
+    resultfp.seek(0)
+    # Obtenga la cadena de configuración
+    result = resultfp.read()
+    # Expande las variables de entorno encontradas en
+    result = Template(result).substitute(os.environ)
+    logger.debug("Configuracion resultante:\n%s", result)
+    # Escríbelo al destino
+    with open(TARGET_FILE, "w") as targetfp:
+        targetfp.write(result)

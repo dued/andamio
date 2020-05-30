@@ -1,0 +1,11 @@
+#!/bin/bash
+log WARNING python-odoo-shell esta en desuso y se eliminara en Andamio 13.0, \
+    use en su lugar: addons update --test $@
+# Acceso directo para ejecutar Odoo en modo de test unit
+set -e
+addons=$1
+shift
+log INFO Ejecutando Odoo en modo unittest para addons $addons
+# HACK `--workers 0`: https://github.com/odoo/odoo/pull/14809
+set -x
+exec odoo --workers 0 --test-enable --stop-after-init --update "$addons" "$@"

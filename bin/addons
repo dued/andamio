@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+
+import ast
+import os
+import sys
+from argparse import ArgumentParser
+from subprocess import check_call
+
+from andamiolib import (
+    CORE,
+    ENTERPRISE,
+    MANIFESTS,
+    PRIVATE,
+    SRC_DIR,
+    AddonsConfigError,
+    addons_config,
+    logger,
+)
+
+# Códigos de salida
+EXIT_NO_ADDONS = 0x4
+
+# Definir opciones de CLI
+parser = ArgumentParser(description="Instalar complementos en el entorno actual")
+parser.add_argument(
+    "action",
+    choices=("init", "update", "list"),
+    help="Que hacer con los complementos coincidentes.",
+)
+parser.add_argument(
+    "-c", "--core", action="store_true", help="Use todos los addons del nucleo de Odoo"
+)
+parser.add_argument(
+    "-d",
+    "--dependencies",
+    action="store_true",
+    help="Use solo dependencias de complementos seleccionados",
+)
+parser.add_argument(
+    "-e", "--extra", action="store_true", help="Use todos los extra addons"
+)
+parser.add_argument(
+    "-f",
+    "--fullpath",
+    action="store_true",
+    help="Rutafull al addon's de impresion, solo util con el modo lista",
+)
+parser.add_argument(
+    "-i", "--installable", action="store_true", help="Incluir solo addons instalables"
+)
+parser.add_argument(
+    "-n", "--enterprise", action="store_true", help="Use todos los addons empresariales"
+)
+parser.add_argument(
+    "-p", "--private", action="store_true", help="Use todos los addons privados"
+)
+parser.add_argument(
+    "-s",
+    "--separator",
+    type=str,
+    default=",",
+    help="Cadena que separa los complementos solo utiles con el modo de list",
+)
+parser.add_argument(
+    "-t",
+    "--test",
+    action="store_true",
+    help="Ejecute unitests para estos addon's, comunmente combinados con actualizacion",
+)
+parser.add_argument(
+    "-x",
+    "--explicit",
+    action="store_true",
+    help="Falla si algun complemento se declara explicitamente pero no se encuentra",
+)
+parser.add_argument(
+    "-w",
+    "--with",
+    action="append",
+    dest="with_",
+    default=[],
+    help="Complementos para incluir siempre.",
+)
+parser.add_argument(
+    "-W",
+    "--without",
+    action="append",
+    default=[],
+    help="Complementos para excluir siempre.",
+)
+
+# Genere el conjunto de complementos (addons) coincidentes
+args = parser.parse_args()
+dependencies = {"base"}
+addons = set(args.with_)
+without = set(args.without)
+if addons & without:
+    sys.exit("No se puede incluir ni excluir el mismo complemento!")
+if args.dependencies and args.fullpath:
+    sys.exit("Combinación no admitida de --dependencies y --fullpath")
+try:
+    for addon, repo in addons_config(strict=args.explicit):
+        if addon in without:
+            continue
+        core_ok = args.core and repo == CORE
+        enterprise_ok = args.enterprise and repo == ENTERPRISE
+        extra_ok = args.extra and repo not in {CORE, ENTERPRISE, PRIVATE}
+        private_ok = args.private and repo == PRIVATE
+        manual_ok = addon in addons
+        if private_ok or core_ok or extra_ok or enterprise_ok or manual_ok:
+            addon_path = os.path.join(SRC_DIR, repo, addon)
+            manifest = {}
+            for manifest_name in MANIFESTS:
+                try:
+                    manifest_path = os.path.join(addon_path, manifest_name)
+                    with open(manifest_path, "r") as code:
+                        manifest = ast.literal_eval(code.read())
+                        break
+                except IOError:
+                    continue
+            if args.installable and not manifest.get("installable", True):
+                continue
+            dependencies.update(manifest.get("depends", []))
+            if args.fullpath and args.action == "list":
+                addon = addon_path
+            addons.add(addon)
+except AddonsConfigError as error:
+    sys.exit(error.message)
+# Utilice dependencias en su lugar, si se solicita
+if args.dependencies:
+    addons = dependencies - addons
+addons -= without
+
+# Haz la acción requerida
+if not addons:
+    print("No se encontraron complementos", file=sys.stderr)
+    sys.exit(EXIT_NO_ADDONS)
+addons = args.separator.join(sorted(addons))
+if args.action == "list":
+    print(addons)
+else:
+    command = ["odoo", "--stop-after-init", "--{}".format(args.action), addons]
+    if args.test:
+        command += ["--test-enable", "--workers", "0"]
+        if os.environ.get("PGDATABASE"):
+            command += ["--db-filter", u"^{}$".format(os.environ.get("PGDATABASE"))]
+    logger.info("Ejecutando %s", " ".join(command))
+    check_call(command)

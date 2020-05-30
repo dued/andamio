@@ -1,0 +1,4 @@
+#!/bin/bash
+# La agregación de Git se realiza en el paso 100
+set -ex
+test -d /opt/odoo/custom/src/odoo

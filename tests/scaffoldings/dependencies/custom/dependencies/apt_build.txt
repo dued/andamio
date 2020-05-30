@@ -1,0 +1,7 @@
+# Esto instala gcc entre otras cosas
+build-essential
+# Esta es la necesidad basica de construir cualquier extension de Python en v11-
+python-dev
+python3-dev
+# Solo para probarlo se elimina mas tarde
+openssh-server

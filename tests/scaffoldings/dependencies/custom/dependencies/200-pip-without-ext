@@ -1,0 +1,4 @@
+# Compilado localmente, lo que fallaria si falla `apt_build.txt`
+pycrypto==2.6.1 --no-binary :all:
+# Odoo pins docutils==0.12, asi que verifiquemos que se actualice
+docutils==0.14

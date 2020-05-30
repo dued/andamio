@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+if [ "$AGGREGATE" != true ]; then
+    log WARNING No se esta agregando repositorios de codigo
+    exit 0
+fi
+
+exec autoaggregate
