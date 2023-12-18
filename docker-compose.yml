@@ -1,0 +1,50 @@
+version: "3.8"
+
+networks:
+  default:
+    name: cloudbuild
+    external: true
+  odoonet:
+
+volumes:
+  odoo-data:
+  odoo-testlogs:
+  odoo-modules:
+  psql:
+
+services:
+  dued:
+    # Comente Container_name si el deploy implica varias instancias Odoo
+    # https://docs.docker.com/compose/compose-file/compose-file-v3/#container_name
+    # container_name: odoo-server
+    image: dued/andamio:${ODOO_VERSION}
+    depends_on:
+      - db
+    env_file: .env
+    # unless-stopped: siempre reinicia un contenedor, excepto cuando
+    # se detenga manualmente
+    # https://docs.docker.com/compose/compose-file/compose-file-v3/#restart
+    restart: unless-stopped
+    ports: ["8069:8069", "8072:8072"]
+    volumes:
+      # Rutas en el Host (configuración .ssh)
+      - ~/.ssh/:/opt/odoo/.ssh/:cached
+      # Named volumes
+      - odoo-data:${ODOO_DATA_DIR} #/var/lib/odoo/data
+      - odoo-testlogs:${ODOO_LOGS_DIR} #/var/lib/odoo/logs
+      - odoo-modules:${ODOO_EXTRA_ADDONS} #/mnt/extra-addons
+    networks:
+      - odoonet
+  # ------------------------
+  db:
+    image: postgres:${PSQL_VERSION}
+    restart: unless-stopped
+    volumes:
+      - psql:/var/lib/postgresql/data/pgdata
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    networks:
+      - odoonet

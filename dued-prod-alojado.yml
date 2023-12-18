@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  dued:
+    # Decomentar las siguientes líneas para construir la imagen.
+    # Esto es principalmente útil cuando necesita agregar requisitos
+    # adicionales en la fase de construcción o build
+    # build :
+    #  context: .
+    #  dockerfile: Dockerfile
+    volumes:
+      # Uso delegated: cuando el contenedor realiza cambios, el host
+      # refleja esos cambios no necesariamente de forma inmediata.
+      - ./dued:/${ODOO_BASEPATH}:delegated
